@@ -2,7 +2,7 @@
 
 # Disclaimer: Basic iptables firewall for a VPN service using OpenVPN on UDP.
 # Feel free to add your own iptables as you'd like. 
-# Just make sure they are under # OpenVPN and before the -P INPUT DROP rule.
+# Just make sure they are before the -P INPUT DROP rule.
 
 iptables="/sbin/iptables"
 homeconnection=
