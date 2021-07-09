@@ -54,9 +54,9 @@ then
 	$iptables -A FORWARD -i tun0 -o $interface -j ACCEPT
 	# TCP Protection
 	$iptables -N TCP-PROTECTION -t mangle
-	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above 10 --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
 	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above $hashlimitsyn --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
 	$iptables -t mangle -A PREROUTING -m hashlimit -p tcp -m multiport --dports 80,443 --hashlimit-above $hashlimittcp --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above 10 --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
 	$iptables -t mangle -A TCP-PROTECTION -j DROP
 	# UDP Protection
 	$iptables -N DNS-PROTECTION -t raw
