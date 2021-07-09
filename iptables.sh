@@ -1,17 +1,8 @@
 #!/bin/bash
 
-# Disclaimer: Basic firewall that should do you justice if your hosting provider isn't retarded.
-# This is primarily for running OpenVPN on UDP, if you'd like to implement a sucessful OpenVPN TCP -> you'd need to implement stateful filtering, iptables won't do much
-# For attacks that target your OpenVPN filter, you can play around with length filtering, however, I'd suggest not using a GAME OVH
-# as any port that's on the GAME firewall (not beta) will leak
-# note that you'll still be affected by DrDoS SYN, the limit can only do soo much, I'd suggest routing your TCP traffic to a Frantech server or any server that has
-# stateful filtering implemented -> however, if you use OVH GAME (beta firewall), you should be fine.
-# You may have also noticed that I'm not blocking amps src ports. On this type of firewall, that is not needed as all traffic not matching
-# any of the rules sets is automatically blocked.
-# if you would like to implement amp src ports, you can do so at your free will, i've made a section for it
-# if there are any typos that may hinder this script from working, run a dry-run
-# if you want to add any of your firewalls that you think may be useful, feel free to do so. Just make sure they
-# are added before the -P INPUT DROP rule and after the # OpenVPN section
+# Disclaimer: Basic iptables firewall for a VPN service using OpenVPN on UDP.
+# Feel free to add your own iptables as you'd like. 
+# Just make sure they are under # OpenVPN and before the -P INPUT DROP rule.
 
 iptables="/sbin/iptables"
 homeconnection=
@@ -24,13 +15,15 @@ hashlimitsyn=
 hashlimittcp=
 hashlimitudp=
 
-# example for hashlimitsyn/tcp/udp: 100/sec or 300/sec -> use it in those direct values... time/sec or minute or whichever one you want
+# Hashlimit = time/sec/min/hr/day
+# Example = 1000/sec
 
 echo
+echo " Created by Skedaddle"
 echo
-echo " IP Tables Firewall"
+echo " VPN Firewall"
 echo 
-echo " 1. VPN"
+echo " 1. Load Firewall"
 echo " 2. Clear Firewall"
 echo
 echo " Please choose a module: "
@@ -50,10 +43,10 @@ then
 	$iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -j ACCEPT
  	$iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 	# OpenVPN Filter (Basic)
-  $iptables -A INPUT -p udp -m udp -m length --length 82:84 --dport $openvpnport -j ACCEPT
+  	$iptables -A INPUT -p udp -m udp -m length --length 82:84 --dport $openvpnport -j ACCEPT
 	$iptables -t raw -A PREROUTING -p udp -m udp -m length --length 1:81 --dport $openvpnport -j DROP
 	$iptables -t raw -A PREROUTING -p udp -m udp -m length --length 85:89 --dport $openvpnport -j DROP
-	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $openvpnport -j DROP # Blocks that shit OpenVPN method
+	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $openvpnport -j DROP # Blocks CVE Exploit
 	# OpenVPN
 	$iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $interface -j MASQUERADE
 	$iptables -A INPUT -i tun0 -j ACCEPT
@@ -70,13 +63,9 @@ then
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m string --from 40 --algo bm --hex-string '|00 00 ff 00 01|' -j DNS-PROTECTION
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m length --length 1:50 -j DNS-PROTECTION
 	$iptables -t raw -A DNS-PROTECTION -j DROP
-	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above $hashlimitudp --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j DROP
-	# AMP Protection
-	$iptables -t AMP-PROTECTION -t raw
-	# import iptables rule here using the raw table... for TCP -> do not use -t raw, you need to implement stateful filtering
-	$iptables -t raw -A AMP-PROTECTION -j DROP 	
-	# Block the rest of traffic
-	$iptables -P INPUT DROP # may make NAT moderate, an alternative to this would be blocking protocols not needed and adding more filtering to UDP/TCP
+	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above $hashlimitudp --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j DROP	
+	# Block Traffic
+	$iptables -P INPUT DROP # Any traffic not matching any of the accepted applied rulesets above is blocked.
 echo "VPN firewall added."
 elif test "$tmp" = "2"
 then
