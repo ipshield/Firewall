@@ -66,7 +66,7 @@ then
 	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above $hashlimitudp --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j DROP	
 	# Block Traffic
 	$iptables -P INPUT DROP # Any traffic not matching any of the accepted applied rulesets above is blocked.
-echo "VPN firewall added."
+echo "Firewall added."
 elif test "$tmp" = "2"
 then
 	# Clear Firewall
