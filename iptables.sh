@@ -1,8 +1,32 @@
 #!/bin/bash
 
-# Disclaimer: Basic iptables firewall for a VPN service using OpenVPN on UDP.
-# Feel free to add your own iptables as you'd like. 
-# Just make sure they are before the -P INPUT DROP rule.
+# Disclaimer
+
+# Basic iptables firewall for a VPN service using OpenVPN on UDP.
+# Helps mitigate DDoS attacks that leak from the edge. For better
+# performance, I'd suggest using a server with a higher port speed 
+# then 1G so you aren't prone to port saturation.
+
+# For "OpenVPN Filter" to work, you must insert a BPF filter that 
+# matches your OpenVPN setup. Thus, requires you to analyze traffic.
+
+# I'm well aware that this iptables firewall can indeed 
+# be optimized by altering the structure a bit, however
+# as stated earlier, it's something basic 
+# that can efficiently mitigate DDoS attacks.
+
+# Feel free to add your own iptables as you'd like. Just make sure 
+# they are before the -P INPUT DROP rule.
+
+# Need help making an OpenVPN (UDP) filter? 
+# Contact me on Discord: Skedaddle#0091
+
+# Or, you can use this guide below made by Courvix.
+# https://github.com/Courvix/OpenVPN-DDoS-Protection
+# Along with his ipt generator for making the filter.
+# https://courvix.com/bpf.php
+
+# End
 
 iptables="/sbin/iptables"
 homeconnection=
@@ -10,7 +34,7 @@ vpnIP=
 sshport=
 serverIP=
 interface=
-openvpnport=
+vpnport=
 hashlimitsyn=
 hashlimittcp=
 hashlimitudp=
@@ -42,11 +66,9 @@ then
  	$iptables -A INPUT -d $serverIP/32 -p icmp --icmp-type 8 -j ACCEPT
 	$iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -j ACCEPT
  	$iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-	# OpenVPN Filter (Basic)
-  	$iptables -A INPUT -p udp -m udp -m length --length 82:84 --dport $openvpnport -j ACCEPT
-	$iptables -t raw -A PREROUTING -p udp -m udp -m length --length 1:81 --dport $openvpnport -j DROP
-	$iptables -t raw -A PREROUTING -p udp -m udp -m length --length 85:89 --dport $openvpnport -j DROP
-	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $openvpnport -j DROP # Blocks CVE Exploit
+	# OpenVPN Filter
+  	$iptables -A INPUT -m conntrack --ctstate NEW -p udp -m bpf --bytecode "" -j ACCEPT
+	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $vpnport -j DROP # Blocks CVE Exploit
 	# OpenVPN
 	$iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $interface -j MASQUERADE
 	$iptables -A INPUT -i tun0 -j ACCEPT
@@ -54,18 +76,19 @@ then
 	$iptables -A FORWARD -i tun0 -o $interface -j ACCEPT
 	# TCP Protection
 	$iptables -N TCP-PROTECTION -t mangle
-	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above $hashlimitsyn --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
-	$iptables -t mangle -A PREROUTING -m hashlimit -p tcp -m multiport --dports 80,443 --hashlimit-above $hashlimittcp --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -m hashlimit -p tcp -m multiport --dports 80,443 --hashlimit-above 50/sec --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
 	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above 10 --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
 	$iptables -t mangle -A TCP-PROTECTION -j DROP
-	# UDP Protection
+	# DNS Protection
 	$iptables -N DNS-PROTECTION -t raw
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m string --from 40 --algo bm --hex-string '|00 00 ff 00 01|' -j DNS-PROTECTION
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m length --length 1:50 -j DNS-PROTECTION
 	$iptables -t raw -A DNS-PROTECTION -j DROP
-	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above $hashlimitudp --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j DROP	
-	# Block Traffic
-	$iptables -P INPUT DROP # Any traffic not matching any of the accepted applied rulesets above is blocked.
+	# UDP Protection
+	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j DROP	
+	# Drop All Policy
+	$iptables -P INPUT DROP
 echo "Firewall added."
 elif test "$tmp" = "2"
 then
