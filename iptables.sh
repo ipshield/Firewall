@@ -4,26 +4,26 @@
 
 # Basic iptables firewall for a VPN service using OpenVPN on UDP.
 # Helps mitigate DDoS attacks that leak from the edge. For better
-# performance, I'd suggest using a server with a higher port speed 
-# then 1G so you aren't prone to port saturation.
+# performance, use a higher port speed then 1G 
+# so you aren't prone to port saturation.
 
 # For "OpenVPN Filter" to work, you must insert a BPF filter that 
 # matches your OpenVPN setup. Thus, requires you to analyze traffic.
 
-# I'm well aware that this iptables firewall can indeed 
-# be optimized by altering the structure a bit, however
-# as stated earlier, it's something basic 
-# that can efficiently mitigate DDoS attacks.
+# This iptables firewall can indeed be optimized 
+# by altering the structure a bit, however as 
+# stated earlier, it's something basic that 
+# can efficiently mitigate DDoS attacks.
 
 # Feel free to add your own iptables as you'd like. Just make sure 
 # they are before the -P INPUT DROP rule.
 
 # Need help making an OpenVPN (UDP) filter? 
-# Contact me on Discord: Skedaddle#0091
+# Contact: Skedaddle#0091 on Discord.
 
 # Or, you can use this guide below made by Courvix.
 # https://github.com/Courvix/OpenVPN-DDoS-Protection
-# Along with his ipt generator for making the filter.
+# Along with his ipt generator for making a filter.
 # https://courvix.com/bpf.php
 
 # End
