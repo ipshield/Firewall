@@ -86,7 +86,7 @@ then
 	$iptables -N UDP-PROTECTION -t raw
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m string --from 40 --algo bm --hex-string '|00 00 ff 00 01|' -j UDP-PROTECTION
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m length --length 1:50 -j UDP-PROTECTION
-	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $openvpnport -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j UDP-PROTECTION	
+	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $vpnport -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j UDP-PROTECTION	
 	$iptables -t raw -A UDP-PROTECTION -j DROP
 	# Drop All Policy
 	$iptables -P INPUT DROP
