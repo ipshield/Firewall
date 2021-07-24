@@ -11,9 +11,10 @@
 # matches your OpenVPN setup. Thus, requires you to analyze traffic.
 
 # This iptables firewall can indeed be optimized 
-# by altering the structure a bit, however as 
-# stated earlier, it's something basic that 
-# can efficiently mitigate DDoS attacks.
+# by altering the structure a bit and adding other
+# filering techniques, however as stated earlier,
+# it's something basic that can efficiently 
+# mitigate DDoS attacks.
 
 # Feel free to add your own iptables as you'd like. Just make sure 
 # they are before the -P INPUT DROP rule.
@@ -58,6 +59,7 @@ if test "$tmp" = "1"
 then
  	# Block Invalid Packets
 	$iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
+	$iptables -t raw -A PREROUTING -f -j DROP
 	# Connections
 	$iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
 	$iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
