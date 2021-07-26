@@ -39,9 +39,12 @@ vpnport=
 hashlimitsyn=
 hashlimittcp=
 hashlimitudp=
+connlimit=
 
 # Hashlimit = time/sec/min/hr/day
 # Example = 1000/sec
+# Connlimit = number
+# Example = 2
 
 echo
 echo " Created by Skedaddle"
@@ -57,7 +60,7 @@ echo
 
 if test "$tmp" = "1"
 then
- 	# Block Invalid Packets
+ 	# Invalid
 	$iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
 	$iptables -t raw -A PREROUTING -f -j DROP
 	# Connections
@@ -69,7 +72,7 @@ then
 	$iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -j ACCEPT
  	$iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 	# OpenVPN Filter
-  	$iptables -A INPUT -p udp -m conntrack --ctstate NEW  -m bpf --bytecode "" -j ACCEPT
+	$iptables -A INPUT -m conntrack --ctstate NEW -m bpf --bytecode "" -j ACCEPT
 	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $vpnport -j DROP # Blocks CVE Exploit
 	# OpenVPN
 	$iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $interface -j MASQUERADE
@@ -78,15 +81,14 @@ then
 	$iptables -A FORWARD -i tun0 -o $interface -j ACCEPT
 	# TCP Protection
 	$iptables -N TCP-PROTECTION -t mangle
-	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
-	$iptables -t mangle -A PREROUTING -p tcp -m multiport --dports 80,443 -m hashlimit --hashlimit-above 50/sec --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
-	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above 10 --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above $hashlimitsyn --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp -m multiport --dports 80,443 -m hashlimit --hashlimit-above $hashlimittcp --hashlimit-mode srcip --hashlimit-name TCP-LIMIT -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above $connlimit --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
 	$iptables -t mangle -A TCP-PROTECTION -j DROP
 	# UDP Protection
 	$iptables -N UDP-PROTECTION -t raw
 	$iptables -t raw -A PREROUTING -p udp --sport 53 -m string --from 40 --algo bm --hex-string '|00 00 ff 00 01|' -j UDP-PROTECTION
-	$iptables -t raw -A PREROUTING -p udp --sport 53 -m length --length 1:50 -j UDP-PROTECTION
-	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $vpnport -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j UDP-PROTECTION	
+	$iptables -t raw -A PREROUTING -p udp -m udp ! --dport $vpnport -m hashlimit --hashlimit-above $hashlimitudp --hashlimit-mode srcip --hashlimit-name UDP-LIMIT -j UDP-PROTECTION	
 	$iptables -t raw -A UDP-PROTECTION -j DROP
 	# Drop All Policy
 	$iptables -P INPUT DROP
