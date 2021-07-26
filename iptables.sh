@@ -4,7 +4,7 @@
 
 # Basic iptables firewall for a VPN service using OpenVPN on UDP.
 # Helps mitigate DDoS attacks that leak from the edge. For better
-# performance, use a higher port speed then 1G 
+# performance, use a higher port speed than 1G 
 # so you aren't prone to port saturation.
 
 # For "OpenVPN Filter" to work, you must insert a BPF filter that 
