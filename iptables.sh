@@ -69,7 +69,7 @@ then
 	$iptables -A INPUT -s 127.0.0.0/8 -d 127.0.0.0/8 -j ACCEPT
  	$iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 	# OpenVPN Filter
-  	$iptables -A INPUT -m conntrack --ctstate NEW -p udp -m bpf --bytecode "" -j ACCEPT
+  	$iptables -A INPUT -p udp -m conntrack --ctstate NEW  -m bpf --bytecode "" -j ACCEPT
 	$iptables -t raw -A PREROUTING -p udp -m udp --sport 1194 --dport $vpnport -j DROP # Blocks CVE Exploit
 	# OpenVPN
 	$iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $interface -j MASQUERADE
@@ -79,7 +79,7 @@ then
 	# TCP Protection
 	$iptables -N TCP-PROTECTION -t mangle
 	$iptables -t mangle -A PREROUTING -p tcp --syn -m conntrack --ctstate NEW -m hashlimit --hashlimit-above 100/sec --hashlimit-mode srcip --hashlimit-name SYN-LIMIT -j TCP-PROTECTION
-	$iptables -t mangle -A PREROUTING -m hashlimit -p tcp -m multiport --dports 80,443 --hashlimit-above 50/sec --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
+	$iptables -t mangle -A PREROUTING -p tcp -m multiport --dports 80,443 -m hashlimit --hashlimit-above 50/sec --hashlimit-mode srcip --hashlimit-name TCP-ATTACK -j TCP-PROTECTION
 	$iptables -t mangle -A PREROUTING -p tcp -m tcp -m connlimit --connlimit-above 10 --connlimit-mask 32 --connlimit-saddr -j TCP-PROTECTION
 	$iptables -t mangle -A TCP-PROTECTION -j DROP
 	# UDP Protection
