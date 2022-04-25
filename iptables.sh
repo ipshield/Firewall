@@ -22,11 +22,6 @@
 # Need help making an OpenVPN (UDP) filter? 
 # Contact: Skedaddle#0091 on Discord.
 
-# Or, you can use this guide below made by Courvix.
-# https://github.com/Courvix/OpenVPN-DDoS-Protection
-# Along with his ipt generator for making a filter.
-# https://courvix.com/bpf.php
-
 # End
 
 iptables="/sbin/iptables"
